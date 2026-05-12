@@ -1,4 +1,5 @@
 using System;
+using GameFramework.Audio;
 using GameFramework.Input;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -45,6 +46,11 @@ public abstract class CoreGame : Game
     /// 获取或设置一个值，该值用于指示当键盘上的“esc”键被按下时游戏是否应退出.
     /// </summary>
     public static bool ExitOnEscape { get; set; }
+    
+    /// <summary>
+    /// 音频控制
+    /// </summary>
+    public static AudioController Audio { get; private set; }
 
     protected CoreGame(string title, int width, int height, bool fullScreen = false)
     {
@@ -93,12 +99,26 @@ public abstract class CoreGame : Game
 
         // 创建新的input管理器
         Input = new InputManager();
+        
+        // 创建新的音频控制器
+        Audio = new AudioController();
+    }
+
+    protected override void UnloadContent()
+    {
+        // 释放音频控制器
+        Audio.Dispose();
+        
+        base.UnloadContent();
     }
 
     protected override void Update(GameTime gameTime)
     {
-        // 更新 Input管理器.
+        // 更新 Input管理器
         Input.Update(gameTime);
+        
+        // 更新 音频控制器
+        Audio.Update();
 
         if (ExitOnEscape && Input.Keyboard.WasKeyJustPressed(Keys.Escape))
         {
