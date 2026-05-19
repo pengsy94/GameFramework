@@ -1,6 +1,7 @@
 using System;
 using GameFramework.Audio;
 using GameFramework.Input;
+using GameFramework.Scenes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -16,6 +17,12 @@ public abstract class CoreGame : Game
     /// 获取对 Core 实例的引用
     /// </summary>
     public static CoreGame Instance => s_instance;
+
+    // 当前正在运行的场景.
+    private static Scene s_activeScene;
+
+    // 接下来要切换到的场景（如果有的话）.
+    private static Scene s_nextScene;
 
     /// <summary>
     /// 获取图形设备管理器以控制图形的表示
@@ -46,7 +53,7 @@ public abstract class CoreGame : Game
     /// 获取或设置一个值，该值用于指示当键盘上的“esc”键被按下时游戏是否应退出.
     /// </summary>
     public static bool ExitOnEscape { get; set; }
-    
+
     /// <summary>
     /// 音频控制
     /// </summary>
@@ -99,7 +106,7 @@ public abstract class CoreGame : Game
 
         // 创建新的input管理器
         Input = new InputManager();
-        
+
         // 创建新的音频控制器
         Audio = new AudioController();
     }
@@ -108,7 +115,7 @@ public abstract class CoreGame : Game
     {
         // 释放音频控制器
         Audio.Dispose();
-        
+
         base.UnloadContent();
     }
 
@@ -116,7 +123,7 @@ public abstract class CoreGame : Game
     {
         // 更新 Input管理器
         Input.Update(gameTime);
-        
+
         // 更新 音频控制器
         Audio.Update();
 
@@ -125,7 +132,61 @@ public abstract class CoreGame : Game
             Exit();
         }
 
+        // 如果有下一场景等待切换到，那就切换到那个场景
+        if (s_nextScene != null)
+        {
+            TransitionScene();
+        }
+
+        // 如果有正在进行的场景，就对其进行更新
+        if (s_activeScene != null)
+        {
+            s_activeScene.Update(gameTime);
+        }
+
         base.Update(gameTime);
+    }
+
+    protected override void Draw(GameTime gameTime)
+    {
+        if (s_activeScene != null)
+        {
+            s_activeScene.Draw(gameTime);
+        }
+
+        base.Draw(gameTime);
+    }
+
+    public static void ChangeScene(Scene next)
+    {
+        if (s_activeScene != next)
+        {
+            s_nextScene = next;
+        }
+    }
+
+    private static void TransitionScene()
+    {
+        // 如果有正在进行的场景，就将其结束掉
+        if (s_activeScene != null)
+        {
+            s_activeScene.Dispose();
+        }
+
+        // 强制垃圾回收器进行清理，以确保内存得以释放
+        GC.Collect();
+
+        // 将当前活动的场景更改为新场景
+        s_activeScene = s_nextScene;
+
+        // 将下一个场景的值设为无效，以防止其反复触发变化
+        s_nextScene = null;
+
+        // 如果当前活动场景不为空，则对其进行初始化
+        if (s_activeScene != null)
+        {
+            s_activeScene.Initialize();
+        }
     }
 
     protected override void LoadContent()
@@ -140,7 +201,7 @@ public abstract class CoreGame : Game
     }
 
     protected int ScreenWidth => base.GraphicsDevice.Viewport.Width;
-    
+
     protected int ScreenHeight => base.GraphicsDevice.Viewport.Height;
 
     protected Vector2 ScreenCenter => new(ScreenWidth / 2f, ScreenHeight / 2f);
